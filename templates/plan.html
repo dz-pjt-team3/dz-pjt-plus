@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}📋 여행 일정{% endblock %}
+
+{% block content %}
+<div class="grid-container">
+
+  <!-- ✅ 왼쪽: 사용자 입력용 사이드바 -->
+  {% include "sidebar.html" %}
+
+  <!-- ✅ 중앙: 여행 일정 결과 -->
+  <div class="center-panel">
+    <div class="header-row">
+      <h3>📅 여행 일정</h3>
+
+      {% if result %}
+      <!-- ✅ PDF 저장: textarea 사용으로 길이 제한 회피 -->
+      <form method="POST" action="{{ url_for('download_pdf') }}">
+        <textarea name="result_html" style="display: none;">{{ result | safe }}</textarea>
+        <button type="submit" class="pdf-btn">📄 PDF로 저장하기</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="itinerary-box">
+      {% if result %}
+        {{ result | safe }}
+      {% else %}
+        <p style="color: gray;">왼쪽에서 조건을 입력하고 일정을 생성해보세요!</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ✅ 오른쪽: 카카오 지도 -->
+  <div class="right-panel">
+    <h3>🗺️ 지도</h3>
+    <div id="map" style="width: 100%; height: 500px;"></div>
+  </div>
+
+</div>
+
+<!-- ✅ 스타일 -->
+<style>
+.place-link {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.place-link:hover {
+  background-color: #eaf4ff;
+}
+.itinerary-box {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 15px;
+}
+</style>
+
+<!-- ✅ 카카오 지도 -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_key }}&autoload=false"></script>
+<script>
+kakao.maps.load(function () {
+  let currentInfoWindow = null;
+
+  const mapContainer = document.getElementById('map');
+  const center = new kakao.maps.LatLng({{ center_lat }}, {{ center_lng }});
+  const map = new kakao.maps.Map(mapContainer, { center: center, level: 6 });
+
+  const markerData = {{ markers | tojson | safe }};
+  const markerDict = {};
+
+  markerData.forEach(m => {
+    const pos = new kakao.maps.LatLng(m.lat, m.lng);
+    const marker = new kakao.maps.Marker({ map, position: pos });
+    const info = new kakao.maps.InfoWindow({
+      content: `
+        <div style="padding:6px 10px; font-size:13px;">
+          <b>${m.day} ${m.time}</b><br>
+          <b>${m.name}</b><br>
+          ${m.desc}
+        </div>`
+    });
+    kakao.maps.event.addListener(marker, 'click', () => {
+      if (currentInfoWindow) currentInfoWindow.close();
+      info.open(map, marker);
+      currentInfoWindow = info;
+    });
+    markerDict[m.name] = { marker, info, pos };
+  });
+
+  document.querySelectorAll('.place-link').forEach(el => {
+    el.addEventListener('click', () => {
+      const name = el.dataset.name;
+      const data = markerDict[name];
+      if (!data) return;
+
+      if (currentInfoWindow) currentInfoWindow.close();
+      map.setCenter(data.pos);
+      data.info.open(map, data.marker);
+      currentInfoWindow = data.info;
+    });
+  });
+});
+</script>
+{% endblock %}

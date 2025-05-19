@@ -1,0 +1,201 @@
+/*======================================Base Styles======================================*/
+body {
+  font-family: 'Segoe UI', sans-serif;  /* 📄 기본 글꼴 설정 */
+  background-color: #f8f9fa;            /* 배경색: 연한 회색 */
+  margin: 0;                             /* 바깥 여백 제거 */
+  padding: 0;                            /* 안쪽 여백 제거 */
+  color: #333;                           /* 글자색: 진한 회색 */
+}
+
+header {
+  background-color: #007bff;            /* 🔵 상단 헤더: 파란 배경 */
+  color: white;                         /* 헤더 글자색: 흰색 */
+  padding: 16px;                         /* 안쪽 여백 */
+  text-align: center;                   /* 텍스트 가운데 정렬 */
+  font-size: 24px;                      /* 글자 크기 */
+  font-weight: bold;                    /* 글자 굵게 */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);/* 그림자 효과 */
+}
+
+footer {
+  background-color: #f1f1f1;            /* 🔻 하단 푸터: 연한 회색 */
+  padding: 10px;                         /* 안쪽 여백 */
+  text-align: center;                   /* 가운데 정렬 */
+  font-size: 14px;                      /* 글자 크기 */
+  color: #666;                          /* 글자색: 중간 회색 */
+}
+
+.main-wrapper {
+  margin-left: 450px;                   /* ⬅️ 사이드바 밀어내는 공간 확보 */
+  padding: 24px;                         /* 내부 여백 */
+  transition: margin-left 0.3s ease;    /* 부드러운 애니메이션 */
+}
+
+/*======================================Grid Layout======================================*/
+.grid-container {
+  display: flex;                         /* 패널들 가로 정렬 */
+  gap: 24px;                             /* 패널 간 간격 */
+}
+
+.center-panel, .right-panel {
+  background: #fff;                      /* 패널 배경: 흰색 */
+  padding: 24px;                         /* 내부 여백 */
+  border-radius: 12px;                   /* 모서리 둥글게 */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);/* 그림자 */
+  flex: 1;                               /* 너비 균등 분배 */
+}
+
+/*======================================Sidebar Styles======================================*/
+.sidebar {
+  position: fixed;                      /* 고정 위치 */
+  top: 0; left: 0;
+  width: 450px;                         /* 너비 고정 */
+  height: 100%;                         /* 높이 전체 */
+  background: #ffffff;                  /* 흰 배경 */
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);/* 오른쪽 그림자 */
+  transform: translateX(-450px);        /* 숨김 상태 */
+  transition: transform 0.3s ease;      /* 부드러운 이동 */
+  z-index: 1000;                        /* 위에 표시 */
+}
+
+.sidebar.open {
+  transform: translateX(0);             /* 보이는 상태 */
+}
+
+#sidebar-toggle {
+  position: absolute;                   /* 사이드바 외부로 배치 */
+  top: 16px;
+  right: -40px;
+  width: 32px; height: 32px;
+  background: #fff;
+  color: #007bff;
+  border: none;
+  border-radius: 4px;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* 버튼 그림자 */
+}
+
+.sidebar-content {
+  padding: 24px;                         /* 내부 여백 */
+  height: calc(100% - 100px);           /* 푸터 제외 높이 */
+  overflow-y: auto;                     /* 내부 스크롤 */
+}
+
+.sidebar-footer {
+  padding: 16px 24px;                   /* 버튼 영역 여백 */
+  border-top: 1px solid #eee;          /* 구분선 */
+  background: #f9f9f9;                 /* 연한 배경 */
+}
+
+/*=====================================Form Elements=====================================*/
+label {
+  font-weight: 600;                      /* 라벨 굵게 */
+  display: block;
+  margin: 10px 0 6px;                    /* 여백 */
+}
+
+input[type="date"],
+input[type="text"],
+select,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background-color: #fff;
+  margin-bottom: 14px;
+  resize: none;
+}
+
+.row {
+  display: flex;                        /* 가로 정렬 */
+  gap: 16px;                            /* 간격 */
+}
+
+.row .half {
+  flex: 1;                              /* 동일 너비 */
+  display: flex;
+  flex-direction: column;              /* 세로 정렬 */
+}
+
+/*==================================Theme Toggle Group==================================*/
+.theme-toggle-group {
+  display: flex;                        /* 가로 정렬 */
+  flex-wrap: wrap;                     /* 줄바꿈 허용 */
+  gap: 8px;
+  margin: 10px 0 20px;
+}
+
+.theme-toggle-group input[type="checkbox"] {
+  display: none;                       /* 체크박스 숨김 */
+}
+
+.theme-toggle-group label {
+  padding: 8px 14px;
+  background-color: #e9ecef;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.theme-toggle-group input[type="checkbox"]:checked + label {
+  background-color: #007bff;           /* 체크 시 파랑 */
+  color: white;
+  border-color: #007bff;
+}
+
+/*=====================================Buttons=====================================*/
+button {
+  padding: 10px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  width: 100%;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.reset-button {
+  background-color: #f0f0f0;           /* 초기화 버튼 회색 */
+  color: #333;
+  border: 1px solid #ccc;
+  margin-top: 8px;
+}
+
+.reset-button:hover {
+  background-color: #e1e1e1;           /* 호버 시 연회색 */
+}
+
+/*=====================================Map & 일정 출력=====================================*/
+#map {
+  width: 100%;
+  height: 500px;
+  box-sizing: border-box;
+}
+
+.itinerary-box {
+  white-space: pre-wrap;                /* 줄바꿈 유지 */
+  line-height: 1.6;                     /* 줄 간격 */
+  font-size: 15px;
+  padding-top: 10px;
+}
+
+.place-link {
+  color: #007bff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.place-link:hover {
+  background-color: #eaf4ff;           /* 장소 링크 호버 효과 */
+}

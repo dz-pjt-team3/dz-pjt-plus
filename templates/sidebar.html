@@ -1,0 +1,86 @@
+<!-- templates/sidebar.html -->
+<div class="sidebar" id="sidebar">
+  <button id="sidebar-toggle" class="toggle-button">☰</button>
+
+  <div class="sidebar-content panel">
+    <div class="sidebar-scroll">
+      <form id="sidebar-form" action="{{ url_for('plan') }}" method="post" autocomplete="off">
+        <label>여행 날짜</label>
+        <div class="row">
+          <div class="half">
+            <label>시작일</label>
+            <input type="date" name="start_date" required value="{{ form.start_date }}">
+          </div>
+          <div class="half">
+            <label>종료일</label>
+            <input type="date" name="end_date" required value="{{ form.end_date }}">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="half">
+            <label>누구와</label>
+            <select name="companions">
+              {% for option in ["혼자", "친구", "연인", "가족", "기타"] %}
+              <option value="{{ option }}" {% if form.companions == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="half">
+            <label>총 인원수</label>
+            <select name="people_count">
+              {% for i in range(1, 11) %}
+              <option value="{{ i }}" {% if form.people_count == i|string %}selected{% endif %}>{{ i }}명</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <label>여행 장소</label>
+        <input type="text" name="location" placeholder="예: 제주도, 서울" required value="{{ form.location }}">
+
+        <label>교통수단</label>
+        <select name="transport_mode">
+          {% for mode in ["버스", "자차", "기차", "도보", "기타"] %}
+          <option value="{{ mode }}" {% if form.transport_mode == mode %}selected{% endif %}>{{ mode }}</option>
+          {% endfor %}
+        </select>
+
+        <label>여행 테마</label>
+        <div class="theme-toggle-group">
+          {% for theme in ["맛집", "카페", "자연경관", "역사탐방", "축제/이벤트", "쇼핑"] %}
+          <input type="checkbox" id="theme_{{ loop.index }}" name="theme" value="{{ theme }}"
+                 {% if theme in form.theme %}checked{% endif %}>
+          <label for="theme_{{ loop.index }}">{{ theme }}</label>
+          {% endfor %}
+        </div>
+
+        <label>추가 조건을 작성해 주세요</label>
+        <textarea name="user_prompt" rows="4" placeholder="예: 첫날은 동궁과월지를 꼭 넣어주세요.">{{ form.user_prompt }}</textarea>
+      </form>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <button type="submit" form="sidebar-form" class="create-button">일정 생성</button>
+  </div>
+
+  <div class="sidebar-footer" style="margin-top: 8px;">
+    <form action="{{ url_for('plan') }}" method="get">
+      <button type="submit" class="reset-button">🔁 일정 초기화</button>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ 사이드바 토글 동작 JS -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebar-toggle');
+    if (toggle && sidebar) {
+      toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+      });
+    }
+  });
+</script>

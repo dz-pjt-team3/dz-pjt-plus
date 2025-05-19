@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}AI 여행 일정 생성기{% endblock %}</title>
+
+  <!-- ✅ 나눠 놓은 CSS 파일들 연결 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/card.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/hero.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/plan.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+  
+  
+
+  {% block head %}{% endblock %}
+</head>
+
+<body>
+  {% include "nav.html" %}
+
+  {% if request.endpoint == 'plan' %}
+    {% include "sidebar.html" %}
+  {% endif %}
+
+  <div class="main-wrapper">
+    {% if request.endpoint == 'plan' %}
+      <header class="site-header">
+        <h1>AI 여행 일정 생성기</h1>
+      </header>
+    {% elif request.endpoint == 'index' %}
+
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- 사이드바 토글 스크립트 -->
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebar-toggle');
+    if (sidebar && toggle) {
+      toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+      });
+    }
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

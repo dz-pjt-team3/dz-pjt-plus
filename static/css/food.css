@@ -1,0 +1,56 @@
+.grid-layout {
+  display: flex;
+  gap: 20px;
+  margin: 20px;
+}
+
+.left-panel, .center-panel, .right-panel {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.left-panel {
+  width: 300px;
+  flex-shrink: 0;   /* ✅ 줄어들지 않도록 */
+}
+
+.center-panel,
+.right-panel {
+  flex: 1;        /* ✅ 나머지 영역을 1:1로 분배 */
+  min-width: 0;   /* ✅ 컨텐츠가 넘칠 때 줄어들 수 있도록 */
+}
+
+.place-list {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 20px;
+}
+
+.place-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.place-item:hover {
+  background-color: #f0f8ff;
+}
+
+
+
+.youtube-list {
+  list-style: none;
+  padding: 0;
+}
+
+.youtube-list li {
+  margin-bottom: 20px;
+}
+
+.youtube-list img {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}

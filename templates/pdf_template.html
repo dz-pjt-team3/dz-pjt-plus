@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: 'Malgun Gothic', sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 16px;
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .itinerary-box {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h2>📋 여행 일정</h2>
+  <div class="itinerary-box">
+    {{ result | safe }}
+  </div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}음식점 추천{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/food.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="grid-layout">
+  <!-- 🔹 왼쪽: 입력창 + 음식점 리스트 -->
+  <div class="left-panel">
+    <h3>지역 입력</h3>
+    <form method="POST">
+      <input type="text" name="region" placeholder="예: 서울 강남역" required>
+      <button type="submit">검색</button>
+    </form>
+
+    <ul class="place-list">
+      {% for place in places %}
+      <li class="place-item" data-lat="{{ place.lat }}" data-lng="{{ place.lng }}">
+        <strong>{{ place.name }}</strong><br>
+        <small>{{ place.address }}</small>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- 🔹 가운데: 카카오 지도 -->
+  <div class="center-panel">
+    <h3>지도</h3>
+    <div id="map" style="width: 100%; height: 500px;"></div>
+  </div>
+
+  <!-- 🔹 오른쪽: GPT 유튜브 추천 -->
+<div class="right-panel">
+  <h3>유튜브 맛집 추천</h3>
+  <ul class="youtube-list">
+    {% for video in youtube_videos %}
+    <li style="margin-bottom: 16px;">
+      <a href="{{ video.url }}" target="_blank">
+        <img src="{{ video.thumbnail }}" width="100%" style="border-radius: 8px;"><br>
+        <strong>{{ video.title }}</strong>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+<!-- Kakao 지도 API 불러오기 -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_key }}&autoload=false"></script>
+<script>
+kakao.maps.load(function () {
+  const mapContainer = document.getElementById('map');
+  const center = new kakao.maps.LatLng(37.5665, 126.9780); // 기본 중심 (서울)
+  const map = new kakao.maps.Map(mapContainer, {
+    center: center,
+    level: 5
+  });
+
+  const markerList = [];
+
+  // 📍 place-list의 각 항목 반복
+  document.querySelectorAll('.place-item').forEach(item => {
+    const lat = parseFloat(item.dataset.lat);
+    const lng = parseFloat(item.dataset.lng);
+    const name = item.querySelector('strong').innerText;
+
+    const pos = new kakao.maps.LatLng(lat, lng);
+
+    // 마커 생성
+    const marker = new kakao.maps.Marker({
+      map: map,
+      position: pos
+    });
+
+    // 인포윈도우 생성
+    const info = new kakao.maps.InfoWindow({
+      content: `<div style="padding:6px;font-size:13px;"><b>${name}</b></div>`
+    });
+
+    // 마커 저장
+    markerList.push({ marker, info });
+
+    // 마커 클릭 시 인포윈도우 열기
+    kakao.maps.event.addListener(marker, 'click', () => {
+      markerList.forEach(m => m.info.close()); // 기존 창 닫기
+      info.open(map, marker);
+    });
+
+    // 📌 리스트 아이템 클릭 시 지도 이동 + 마커 인포윈도우 열기
+    item.addEventListener('click', () => {
+      map.setCenter(pos);
+      map.setLevel(4); // 확대 레벨 조정
+      markerList.forEach(m => m.info.close());
+      info.open(map, marker);
+    });
+  });
+});
+</script>
+
+{% endblock %}
+
