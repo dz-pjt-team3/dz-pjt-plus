@@ -1,0 +1,14 @@
+<!-- templates/search.html -->
+{% extends "base.html" %}
+{% block title %}🔍 {{ region }} | {{ category }} 검색{% endblock %}
+{% block content %}
+<h3>{{ region }} → {{ category }} 검색 결과</h3>
+<ul>
+  {% for p in places %}
+  <li>
+    <strong>{{ p.place_name }}</strong>
+    <small>({{ p.address_name }})</small>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

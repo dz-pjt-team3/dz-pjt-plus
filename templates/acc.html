@@ -1,7 +1,100 @@
 {% extends "base.html" %}
 {% block title %}🏨 숙소 추천{% endblock %}
 
+{% block head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/acc.css') }}">
+{% endblock %}
+
 {% block content %}
-<h2>숙소 추천 페이지입니다.</h2>
-<p>숙소 검색 결과나 예약 정보를 여기에 구성할 수 있어요.</p>
+<div class="grid-layout">
+  <!-- 🔹 왼쪽: 입력창 + 숙소 리스트 -->
+  <div class="left-panel">
+    <h3>지역 입력</h3>
+    <form method="POST">
+      <input type="text" name="region" placeholder="예: 제주 서귀포시" required>
+      <button type="submit">검색</button>
+    </form>
+
+    <ul class="place-list">
+      {% for place in places %}
+      <li class="place-item" data-lat="{{ place.lat }}" data-lng="{{ place.lng }}">
+        <strong>{{ place.name }}</strong><br>
+        <small>{{ place.address }}</small>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- 🔹 가운데: 카카오 지도 -->
+  <div class="center-panel">
+    <h3>지도</h3>
+    <div id="map" style="width: 100%; height: 500px;"></div>
+  </div>
+
+  <!-- 🔹 오른쪽: 유튜브 숙소 추천 -->
+  <div class="right-panel">
+    <h3>유튜브 숙소 추천</h3>
+    <ul class="youtube-list">
+      {% for video in youtube_videos %}
+      <li style="margin-bottom: 16px;">
+        <a href="{{ video.url }}" target="_blank">
+          <img src="{{ video.thumbnail }}" width="100%" style="border-radius: 8px;"><br>
+          <strong>{{ video.title }}</strong>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<!-- Kakao 지도 API -->
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_key }}&autoload=false"></script>
+<script>
+kakao.maps.load(function () {
+  const mapContainer = document.getElementById('map');
+  const center = new kakao.maps.LatLng({{ center_lat }}, {{ center_lng }}); 
+  const map = new kakao.maps.Map(mapContainer, {
+    center: center,
+    level: 5
+  });
+
+  const markerList = [];
+
+  document.querySelectorAll('.place-item').forEach((item, index) => {
+    const lat = parseFloat(item.dataset.lat);
+    const lng = parseFloat(item.dataset.lng);
+    const name = item.querySelector('strong').innerText;
+
+    const pos = new kakao.maps.LatLng(lat, lng);
+
+    const marker = new kakao.maps.Marker({
+      map: map,
+      position: pos
+    });
+
+    const info = new kakao.maps.InfoWindow({
+      content: `<div style="padding:6px;font-size:13px;"><b>${name}</b></div>`
+    });
+
+    markerList.push({ marker, info });
+
+    // 첫 번째 마커 자동 오픈
+    if (index === 0) {
+      info.open(map, marker);
+    }
+
+    kakao.maps.event.addListener(marker, 'click', () => {
+      markerList.forEach(m => m.info.close());
+      info.open(map, marker);
+    });
+
+    item.addEventListener('click', () => {
+      map.setCenter(pos);
+      map.setLevel(4);
+      markerList.forEach(m => m.info.close());
+      info.open(map, marker);
+    });
+  });
+});
+</script>
 {% endblock %}

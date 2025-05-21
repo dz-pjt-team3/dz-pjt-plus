@@ -1,21 +1,73 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, make_response
+import json
 import os
 import re
 import requests
 import markdown
-import tempfile
 from openai import OpenAI
 from dotenv import load_dotenv
 from weasyprint import HTML
+from datetime import datetime, timedelta
+import uuid
 
-# ✅ 환경 변수(.env)에서 API 키 불러오기
+# 환경변수(.env)에서 API 키 로드
 load_dotenv()
 app = Flask(__name__)
 
-# ✅ OpenAI 클라이언트 초기화
+# OpenAI 클라이언트 생성
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+SHARE_FILE = 'share_data.json'    # ✅ 공유된 일정 저장 파일
+REVIEW_FILE = 'review_data.json'  # ✅ 리뷰 저장 파일
 
-# ✅ GPT에게 여행 일정 요청 → 마크다운 형식으로 응답받기
+# ✅ 리뷰 불러오기
+def load_reviews():
+    if not os.path.exists(REVIEW_FILE):
+        return []
+    with open(REVIEW_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+# ✅ 리뷰 저장
+def save_review(new_review):
+    reviews = load_reviews()
+    reviews.append(new_review)
+    with open(REVIEW_FILE, 'w', encoding='utf-8') as f:
+        json.dump(reviews, f, ensure_ascii=False, indent=2)
+
+# ✅ 공유 일정 저장/불러오기
+
+def save_shared_plan(plan_html):
+    share_id = str(uuid.uuid4())[:8]  # 짧은 UUID 생성
+    if os.path.exists(SHARE_FILE):
+        with open(SHARE_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        data = {}
+    data[share_id] = plan_html
+    with open(SHARE_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return share_id
+
+def load_shared_plan(share_id):
+    if not os.path.exists(SHARE_FILE):
+        return None
+    with open(SHARE_FILE, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return data.get(share_id)
+
+@app.route("/share/<share_id>")
+def shared_plan(share_id):
+    html = load_shared_plan(share_id)
+    if html is None:
+        return "공유된 일정을 찾을 수 없습니다.", 404
+    return render_template("shared_plan.html", result=html)
+
+@app.route("/save_share", methods=["POST"])
+def save_share():
+    html = request.json.get("html", "")
+    share_id = save_shared_plan(html)
+    return jsonify({"share_id": share_id})
+
+# ✅ 일정 텍스트 생성 (GPT)
 def generate_itinerary(prompt: str) -> str:
     try:
         response = client.chat.completions.create(
@@ -23,19 +75,18 @@ def generate_itinerary(prompt: str) -> str:
             messages=[
                 {"role": "system", "content": "당신은 전문 여행 일정 플래너입니다."},
                 {"role": "user", "content": prompt}
-            ]
+            ],
+            max_tokens=2000
         )
         return response.choices[0].message.content
     except Exception as e:
         return f"에러 발생: {e}"
 
-# ✅ 텍스트에서 "..."로 감싼 장소명 추출
+# ✅ 기타 도우미 함수들
 def extract_places(text: str) -> list:
     pattern = r"['‘“\"](.+?)['’”\"]"
-    matches = re.findall(pattern, text)
-    return list(set(matches))
+    return list(set(re.findall(pattern, text)))
 
-# ✅ 추출한 장소명에 span 태그로 링크 효과 주기
 def linkify_places(html: str, place_names: list) -> str:
     for place in place_names:
         html = html.replace(
@@ -44,7 +95,6 @@ def linkify_places(html: str, place_names: list) -> str:
         )
     return html
 
-# ✅ 카카오 API로 장소명 → 위도/경도 좌표 변환
 def get_kakao_coords(place_name: str):
     KEY = os.environ["KAKAO_REST_API_KEY"]
     url = "https://dapi.kakao.com/v2/local/search/keyword.json"
@@ -57,16 +107,15 @@ def get_kakao_coords(place_name: str):
         return lat, lng
     return None
 
-# ✅ GPT로부터 받은 텍스트를 일정 리스트로 파싱
 def extract_schedule_entries(text: str) -> list:
-    pattern = r"(\d+일차)(?:\s*[:\-]?\s*)?(.*?)(?=\d+일차|$)"
+    pattern = r"(\d+일차)(?:\s*[:\-]?\s*)?(.*?)(?=\n\d+일차|$)"
     entries = re.findall(pattern, text, re.DOTALL)
     schedule = []
     for day, body in entries:
         for line in body.strip().split("\n"):
             time_match = re.match(r"(\d{1,2}:\d{2})", line)
             time = time_match.group(1) if time_match else ""
-            place_match = re.search(r"[\"“‘'](.+?)[\"”’']", line)
+            place_match = re.search(r'["“‘\'](.+?)["”’\']', line)
             if place_match:
                 place = place_match.group(1)
                 desc = line.replace(place_match.group(0), "").strip(" :-~")
@@ -78,123 +127,127 @@ def extract_schedule_entries(text: str) -> list:
                 })
     return schedule
 
-# ✅ 카테고리 코드로 장소 검색 (맛집, 카페 등)
-def search_category(category_code: str, region: str, size=15) -> list:
-    REST_KEY = os.environ["KAKAO_REST_API_KEY"]
-    url = "https://dapi.kakao.com/v2/local/search/category.json"
-    headers = {"Authorization": f"KakaoAK {REST_KEY}"}
-    params = {
-        "category_group_code": category_code,
-        "query": region,
-        "size": size
-    }
-    res = requests.get(url, headers=headers, params=params).json()
-    return res.get("documents", [])
-
-# ✅ 메인페이지: 히어로 + 추천 링크
-@app.route("/")
+# ✅ 인덱스 페이지
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-# ✅ 음식점 추천 페이지
-@app.route("/food", methods=["GET", "POST"])
-def food():
-    places = []
-    youtube_videos = []
-    if request.method == "POST":
-        region = request.form.get("region")
-        REST_KEY = os.environ["KAKAO_REST_API_KEY"]
-        url = "https://dapi.kakao.com/v2/local/search/keyword.json"
-        headers = {"Authorization": f"KakaoAK {REST_KEY}"}
-        params = {"query": f"{region} 맛집", "size": 10}
-        try:
-            res = requests.get(url, headers=headers, params=params)
-            res.raise_for_status()
-            data = res.json()
-            places = [
-                {
-                    "name": doc["place_name"],
-                    "address": doc["road_address_name"],
-                    "lat": doc["y"],
-                    "lng": doc["x"]
-                } for doc in data["documents"]
-            ]
-        except Exception as e:
-            places = [{"name": f"에러 발생: {e}", "address": ""}]
-        youtube_videos = search_youtube_videos(f"{region} 맛집")
-    return render_template("food.html", places=places, youtube_videos=youtube_videos, kakao_key=os.environ["KAKAO_JAVASCRIPT_KEY"])
+# ✅ 리뷰 제출 처리
+@app.route('/submit_review', methods=['POST'])
+def submit_review():
+    rating = request.form.get('rating')
+    comment = request.form.get('comment')
+    if rating and comment:
+        save_review({"rating": rating, "comment": comment})
+    return redirect(url_for('plan'))
 
-@app.route("/cafe")
-def cafe():
-    return render_template("cafe.html")
+# ✅ PDF 다운로드
+@app.route("/download_pdf", methods=["POST"])
+def download_pdf():
+    result_html = request.form.get("result_html")
+    rendered = render_template("pdf_template.html", result=result_html)
+    pdf = HTML(string=rendered).write_pdf()
+    response = make_response(pdf)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = "attachment; filename=travel_plan.pdf"
+    return response
 
-@app.route("/acc")
-def acc():
-    return render_template("acc.html")
-
-# ✅ 일정 생성 및 지도 표시
+# ✅ 메인 기능 페이지
 @app.route("/plan", methods=["GET", "POST"])
 def plan():
     result = ""
     markers = []
-    center_lat, center_lng = 36.5, 127.5  # 기본 지도 중심 좌표 (대한민국 중심쯤)
+    center_lat, center_lng = 36.5, 127.5
 
-    # ✅ 사용자 입력값을 저장하는 form 딕셔너리 (초기화)
-    form = {
-        "start_date": "",
-        "end_date": "",
-        "companions": "",
-        "people_count": "",
-        "location": "",
-        "transport_mode": "",
-        "theme": [],
-        "user_prompt": ""
-    }
+    # 폼 입력값 초기화
+    start_date = end_date = companions = people_count = user_prompt = location = transport_mode = ""
+    theme = []
 
     if request.method == "POST":
-        # ✅ 입력값 form에 저장
-        for key in form:
-            form[key] = request.form.getlist(key) if key == "theme" else request.form.get(key)
+        start_date = request.form.get("start_date")
+        end_date = request.form.get("end_date")
+        companions = request.form.get("companions")
+        people_count = request.form.get("people_count")
+        theme = request.form.getlist("theme")
+        theme_str = ", ".join(theme)
+        user_prompt = request.form.get("user_prompt")
+        location = request.form.get("location")
+        transport_mode = request.form.get("transport_mode")
 
-        # ✅ 지도 중심 좌표 업데이트
-        coords = get_kakao_coords(form["location"])
+        coords = get_kakao_coords(location)
         if coords:
             center_lat, center_lng = coords
 
-        # ✅ GPT 프롬프트 생성
+        # GPT 프롬프트 구성
         prompt = f"""
-        여행 날짜: {form['start_date']} ~ {form['end_date']}
-        동행: {form['companions']}, 총 인원: {form['people_count']}명
-        여행지: {form['location']}, 테마: {', '.join(form['theme'])}
-        교통수단: {form['transport_mode']}
-        추가 조건: {form['user_prompt']}
-
-        **출력 형식**
-        1일차:
-        09:00~10:00: \"해운대 해수욕장\"
-        - 해운대의 상징인 해변에서 아침을 맞이합니다.
-        - 각 일정에 대해 성의있는 설명과 장소 추천
-        - 모든 장소는 반드시 {form['location']} 지역 내
-        - 장소명은 큰따옴표(\"...\")로 묶기
+        여행 날짜: {start_date} ~ {end_date}
+        동행: {companions}, 총 인원: {people_count}명
+        여행지: {location}, 테마: {theme_str}
+        교통수단: {transport_mode}
+        추가 조건: {user_prompt}
+        
+        - 각 일차를 꼭 출력할 것
+        - 일정은 시각부터 시작 (09:00 등)
+        - 장소명은 큰따옴표로 묶기
+        - 반드시 {location} 지역 내의 장소만 포함
         """
 
-        # ✅ GPT 호출 → HTML 변환 + 링크 처리
         raw_result = generate_itinerary(prompt)
-        result = markdown.markdown(raw_result)
-        result = linkify_places(result, extract_places(raw_result))
 
-        # ✅ 지도용 마커 데이터 추출
-        for entry in extract_schedule_entries(raw_result):
+        try:
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            days = (end_dt - start_dt).days + 1
+            for i in range(days):
+                tag = f"{i+1}일차"
+                full_label = f"{tag}: {(start_dt + timedelta(days=i)).strftime('%Y-%m-%d (%A)')}"
+                if tag in raw_result:
+                    raw_result = raw_result.replace(tag, full_label)
+        except Exception as e:
+            print("📛 요일 계산 오류:", e)
+
+        result = markdown.markdown(raw_result)
+        place_names = extract_places(raw_result)
+        result = linkify_places(result, place_names)
+
+        schedule_data = extract_schedule_entries(raw_result)
+        for entry in schedule_data:
             coord = get_kakao_coords(entry["place"])
             if coord:
-                markers.append({"name": entry["place"], "lat": coord[0], "lng": coord[1], "day": entry["day"], "time": entry["time"], "desc": entry["desc"]})
+                markers.append({
+                    "name": entry["place"],
+                    "lat": coord[0],
+                    "lng": coord[1],
+                    "day": entry["day"],
+                    "time": entry["time"],
+                    "desc": entry["desc"]
+                })
 
-    return render_template("plan.html", result=result, kakao_key=os.environ["KAKAO_JAVASCRIPT_KEY"], markers=markers, center_lat=center_lat, center_lng=center_lng, form=form)
+    reviews = load_reviews()
+    return render_template("plan.html",
+                           result=result,
+                           kakao_key=os.environ["KAKAO_JAVASCRIPT_KEY"],
+                           markers=markers,
+                           center_lat=center_lat,
+                           center_lng=center_lng,
+                           start_date=start_date,
+                           end_date=end_date,
+                           companions=companions,
+                           people_count=people_count,
+                           theme=theme,
+                           user_prompt=user_prompt,
+                           location=location,
+                           transport_mode=transport_mode,
+                           reviews=reviews)
 
-# ✅ 카테고리별 장소 추천
+# ✅ 추천 카테고리 라우트
 @app.route("/search/<category>")
 def search(category):
-    code_map = {"cafe": "CE7", "restaurant": "FD6", "tourism": "AT4"}
+    code_map = {
+        "cafe": "CE7",
+        "restaurant": "FD6",
+        "tourism": "AT4",
+    }
     code = code_map.get(category)
     if not code:
         return redirect(url_for("index"))
@@ -202,31 +255,25 @@ def search(category):
     places = search_category(code, region)
     return render_template("search.html", category=category, region=region, places=places)
 
-# ✅ 유튜브 맛집 영상 검색 함수
-def search_youtube_videos(query, max_results=5):
-    api_key = os.environ["YOUTUBE_API_KEY"]
-    url = "https://www.googleapis.com/youtube/v3/search"
-    params = {"part": "snippet", "q": query, "type": "video", "maxResults": max_results, "key": api_key}
-    res = requests.get(url, params=params)
-    videos = []
-    if res.status_code == 200:
-        data = res.json()
-        for item in data["items"]:
-            video_id = item["id"]["videoId"]
-            title = item["snippet"]["title"]
-            thumbnail = item["snippet"]["thumbnails"]["medium"]["url"]
-            videos.append({"title": title, "url": f"https://www.youtube.com/watch?v={video_id}", "thumbnail": thumbnail})
-    return videos
+def search_category(category_code: str, region: str, size=15) -> list:
+    REST_KEY = os.environ["KAKAO_REST_API_KEY"]
+    url = "https://dapi.kakao.com/v2/local/search/category.json"
+    headers = {"Authorization": f"KakaoAK {REST_KEY}"}
+    params = {"category_group_code": category_code, "query": region, "size": size}
+    res = requests.get(url, headers=headers, params=params).json()
+    return res.get("documents", [])
 
-# ✅ PDF 다운로드 라우터 (HTML 문자열 → PDF 변환)
-@app.route("/download_pdf", methods=["POST"])
-def download_pdf():
-    raw_html = request.form["result_html"]
-    rendered_html = render_template("pdf_template.html", result=raw_html)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
-        HTML(string=rendered_html).write_pdf(tmpfile.name)
-        return send_file(tmpfile.name, as_attachment=True, download_name="여행일정.pdf")
+@app.route("/food")
+def food():
+    return redirect(url_for("search", category="restaurant"))
 
-# ✅ 앱 실행 시작점
-if __name__ == "__main__":
+@app.route("/cafe")
+def cafe():
+    return redirect(url_for("search", category="cafe"))
+
+@app.route("/acc")
+def acc():
+    return redirect(url_for("search", category="tourism"))
+
+if __name__ == '__main__':
     app.run(debug=True)

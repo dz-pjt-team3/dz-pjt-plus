@@ -27,27 +27,12 @@
   {% endif %}
 
   <div class="main-wrapper">
-    {% if request.endpoint == 'plan' %}
-      <header class="site-header">
-        <h1>AI 여행 일정 생성기</h1>
-      </header>
-    {% elif request.endpoint == 'index' %}
 
-    {% endif %}
 
     {% block content %}{% endblock %}
   </div>
 
-  <!-- 사이드바 토글 스크립트 -->
-  <script>
-    const sidebar = document.getElementById('sidebar');
-    const toggle = document.getElementById('sidebar-toggle');
-    if (sidebar && toggle) {
-      toggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-      });
-    }
-  </script>
+
 
   {% block scripts %}{% endblock %}
 </body>

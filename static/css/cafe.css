@@ -1,3 +1,4 @@
+/* ===== cafe.css (food.css 스타일 일치) ===== */
 .grid-layout {
   display: flex;
   gap: 20px;
@@ -13,15 +14,41 @@
 
 .left-panel {
   width: 300px;
-  flex-shrink: 0;   /* ✅ 줄어들지 않도록 */
+  flex-shrink: 0; /* ✅ 고정 너비 */
 }
 
 .center-panel,
 .right-panel {
-  flex: 1;        /* ✅ 나머지 영역을 1:1로 분배 */
-  min-width: 0;   /* ✅ 컨텐츠가 넘칠 때 줄어들 수 있도록 */
+  flex: 1;
+  min-width: 0;
 }
 
+/* 지역 입력창 */
+.left-panel input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+/* 버튼 스타일 (food.css 기준 동일 적용) */
+.left-panel button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.left-panel button:hover {
+  background-color: #0056b3;
+}
+
+/* 장소 리스트 */
 .place-list {
   list-style: none;
   padding-left: 0;
@@ -38,8 +65,7 @@
   background-color: #f0f8ff;
 }
 
-
-
+/* 유튜브 영상 리스트 */
 .youtube-list {
   list-style: none;
   padding: 0;

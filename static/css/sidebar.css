@@ -105,3 +105,40 @@
   color: white;
   border-color: #007bff;
 }
+
+/* ✅ 생성/초기화 버튼 스타일 그룹 */
+.create-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.create-button:hover {
+  background-color: #0056b3;
+}
+
+/* ✅ 프롬프트 크기고정 */
+.sidebar textarea {
+  resize: none;
+  height: 100px;
+}
+
+
+/* ✅ 입력 초기화 버튼 */
+.reset-btn {
+  background-color: #007bff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-weight: bold;
+}
+
+.reset-btn:hover {
+  background-color: #e0e0e0;
+}

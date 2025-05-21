@@ -1,26 +1,79 @@
+/* ✅ 전체 레이아웃 설정 */
 .grid-container {
   display: flex;
   gap: 20px;
+  padding: 0 20px;          /* 좌우 여백 */
+  margin: 0 auto;           /* 중앙 정렬 */
+  max-width: 1600px;        /* 너무 넓게 퍼지는 것 방지 */
+  box-sizing: border-box;
 }
+
+/* ✅ 왼쪽 일정 출력 영역 (비율 2.2) */
 .center-panel {
   background: #fff;
   padding: 20px;
   border-radius: 10px;
-  flex: 2;
+  flex: 2.2;                /* ⬅ 여기서 화면 비율 조정됨 */
   box-shadow: 0 0 10px #ccc;
+  max-width: 1000px;        /* ⬅ 너무 넓지 않도록 가독성 제한 */
 }
+
+/* ✅ 오른쪽 지도 + 리뷰 영역 (비율 1.8) */
 .right-panel {
   background: #fff;
   padding: 20px;
   border-radius: 10px;
-  flex: 2;
+  flex: 1.8;                /* ⬅ 지도와 리뷰에 더 넓은 공간 제공 */
   box-shadow: 0 0 10px #ccc;
 }
+
+/* ✅ 카카오 지도 크기 */
 #map {
   width: 100%;
-  height: 600px;
+  height: 450px;            /* 지도 높이 적당히 크게 */
   box-sizing: border-box;
 }
+
+/* ✅ Leaflet (사용하지 않으면 무시 가능) */
 .leaflet-container {
   height: 80vh !important;
+}
+
+/* ✅ 리뷰 입력 폼 스타일 */
+.review-form {
+  max-width: 500px;
+  margin-top: 1rem;
+}
+
+.review-form textarea {
+  resize: none;
+  width: 100%;
+  height: 60px;
+}
+
+/* ✅ 별점 UI 스타일 */
+.star-rating {
+  direction: rtl;
+  display: inline-flex;
+  font-size: 1.5rem;
+  gap: 5px;
+}
+
+.star-rating input {
+  display: none;
+}
+
+.star-rating label {
+  cursor: pointer;
+  color: #ccc;
+  transition: color 0.2s;
+}
+
+.star-rating input:checked ~ label {
+  color: gold;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+  color: gold;
 }

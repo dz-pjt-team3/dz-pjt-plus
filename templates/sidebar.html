@@ -9,11 +9,11 @@
         <div class="row">
           <div class="half">
             <label>시작일</label>
-            <input type="date" name="start_date" required value="{{ form.start_date }}">
+            <input type="date" name="start_date" value="{{ start_date or '' }}" required>
           </div>
           <div class="half">
             <label>종료일</label>
-            <input type="date" name="end_date" required value="{{ form.end_date }}">
+            <input type="date" name="end_date" value="{{ end_date or '' }}" required>
           </div>
         </div>
 
@@ -21,8 +21,9 @@
           <div class="half">
             <label>누구와</label>
             <select name="companions">
-              {% for option in ["혼자", "친구", "연인", "가족", "기타"] %}
-              <option value="{{ option }}" {% if form.companions == option %}selected{% endif %}>{{ option }}</option>
+              {% set options = ['혼자', '친구', '연인', '가족', '기타'] %}
+              {% for opt in options %}
+              <option value="{{ opt }}" {% if companions == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
@@ -30,54 +31,51 @@
             <label>총 인원수</label>
             <select name="people_count">
               {% for i in range(1, 11) %}
-              <option value="{{ i }}" {% if form.people_count == i|string %}selected{% endif %}>{{ i }}명</option>
+              <option value="{{ i }}" {% if people_count == i|string %}selected{% endif %}>{{ i }}명</option>
               {% endfor %}
             </select>
           </div>
         </div>
 
         <label>여행 장소</label>
-        <input type="text" name="location" placeholder="예: 제주도, 서울" required value="{{ form.location }}">
+        <input type="text" name="location" placeholder="예: 제주도, 서울" value="{{ location or '' }}" required>
 
         <label>교통수단</label>
         <select name="transport_mode">
-          {% for mode in ["버스", "자차", "기차", "도보", "기타"] %}
-          <option value="{{ mode }}" {% if form.transport_mode == mode %}selected{% endif %}>{{ mode }}</option>
+          {% set transports = ['버스', '자차', '기차', '도보', '기타'] %}
+          {% for t in transports %}
+          <option value="{{ t }}" {% if transport_mode == t %}selected{% endif %}>{{ t }}</option>
           {% endfor %}
         </select>
 
         <label>여행 테마</label>
         <div class="theme-toggle-group">
-          {% for theme in ["맛집", "카페", "자연경관", "역사탐방", "축제/이벤트", "쇼핑"] %}
-          <input type="checkbox" id="theme_{{ loop.index }}" name="theme" value="{{ theme }}"
-                 {% if theme in form.theme %}checked{% endif %}>
-          <label for="theme_{{ loop.index }}">{{ theme }}</label>
+          {% set all_themes = ['맛집', '카페', '자연경관', '역사탐방', '축제/이벤트', '쇼핑'] %}
+          {% for th in all_themes %}
+          <input type="checkbox" id="theme{{ loop.index }}" name="theme" value="{{ th }}" {% if th in theme %}checked{% endif %}>
+          <label for="theme{{ loop.index }}">{{ th }}</label>
           {% endfor %}
         </div>
 
         <label>추가 조건을 작성해 주세요</label>
-        <textarea name="user_prompt" rows="4" placeholder="예: 첫날은 동궁과월지를 꼭 넣어주세요.">{{ form.user_prompt }}</textarea>
+        <textarea name="user_prompt" rows="4" placeholder="예: 첫날은 동궁과월지를 꼭 넣어주세요.">{{ user_prompt or '' }}</textarea>
+
+        <!-- ✅ 버튼 추가 영역 -->
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+          <button type="submit" class="create-button">⏱️ 일정 생성</button>
+          <button type="reset" class="reset-btn">♻️ 입력 초기화</button>
+        </div>
       </form>
     </div>
   </div>
-
-  <div class="sidebar-footer">
-    <button type="submit" form="sidebar-form" class="create-button">일정 생성</button>
-  </div>
-
-  <div class="sidebar-footer" style="margin-top: 8px;">
-    <form action="{{ url_for('plan') }}" method="get">
-      <button type="submit" class="reset-button">🔁 일정 초기화</button>
-    </form>
-  </div>
 </div>
 
-<!-- ✅ 사이드바 토글 동작 JS -->
+<!-- 🔁 사이드바 토글 스크립트 -->
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener("DOMContentLoaded", function () {
     const sidebar = document.getElementById('sidebar');
     const toggle = document.getElementById('sidebar-toggle');
-    if (toggle && sidebar) {
+    if (sidebar && toggle) {
       toggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
       });

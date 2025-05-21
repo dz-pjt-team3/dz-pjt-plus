@@ -1,71 +1,124 @@
 {% extends "base.html" %}
 
-{% block title %}📋 여행 일정{% endblock %}
+{% block title %}📋 일정 보기{% endblock %}
 
 {% block content %}
+<header class="site-header">
+  <h1>AI 여행 일정 생성기</h1>
+</header>
+
 <div class="grid-container">
-
-  <!-- ✅ 왼쪽: 사용자 입력용 사이드바 -->
-  {% include "sidebar.html" %}
-
-  <!-- ✅ 중앙: 여행 일정 결과 -->
+  <!-- ✅ 왼쪽: 일정 출력 영역 -->
   <div class="center-panel">
-    <div class="header-row">
-      <h3>📅 여행 일정</h3>
+    <h3>여행 일정</h3>
 
-      {% if result %}
-      <!-- ✅ PDF 저장: textarea 사용으로 길이 제한 회피 -->
+    {% if result %}
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+      <!-- ✅ PDF 다운로드 버튼 -->
       <form method="POST" action="{{ url_for('download_pdf') }}">
         <textarea name="result_html" style="display: none;">{{ result | safe }}</textarea>
         <button type="submit" class="pdf-btn">📄 PDF로 저장하기</button>
       </form>
-      {% endif %}
-    </div>
 
+      <!-- ✅ 공유 링크 복사 버튼 -->
+      <button class="pdf-btn" onclick="copyLink()">🔗 공유 링크 복사</button>
+    </div>
+    <p id="share-result" style="color: gray;"></p>
+
+    <!-- ✅ 일정 출력 박스 -->
     <div class="itinerary-box">
-      {% if result %}
-        {{ result | safe }}
+      {{ result | safe }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ✅ 오른쪽: 지도 및 리뷰 영역 -->
+  <div class="right-panel">
+    <h3>지도</h3>
+    <div id="map" style="height: 450px;"></div>
+
+    {% if result %}
+    <!-- ✅ 리뷰 입력 및 목록 출력 (일정이 있을 때만 표시) -->
+    <div class="review-wrapper">
+      <hr>
+      <h3>⭐ 리뷰 남기기</h3>
+      <form method="POST" action="{{ url_for('submit_review') }}" class="review-form">
+        <label>평점:</label><br>
+        <div class="star-rating">
+          {% for i in range(5, 0, -1) %}
+            <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" required>
+            <label for="star{{ i }}">★</label>
+          {% endfor %}
+        </div>
+
+        <label for="comment">리뷰:</label>
+        <textarea name="comment" required></textarea>
+        <button type="submit" class="pdf-btn">리뷰 제출</button>
+      </form>
+
+      <hr>
+      <h3>📢 사용자 리뷰</h3>
+      {% if reviews|length > 0 %}
+        {% set total_rating = 0 %}
+        {% for review in reviews %}
+          {% set total_rating = total_rating + review.rating|int %}
+        {% endfor %}
+        {% set avg_rating = (total_rating / reviews|length)|round(1) %}
+        <p><strong>⭐ 평균 평점: {{ avg_rating }}점</strong></p>
+
+        <ul>
+          {% for review in reviews %}
+            <li>
+              <strong>
+                {% for i in range(review.rating|int) %}★{% endfor %}
+                {% for i in range(5 - review.rating|int) %}☆{% endfor %}
+              </strong><br>
+              {{ review.comment }}
+            </li>
+          {% endfor %}
+        </ul>
       {% else %}
-        <p style="color: gray;">왼쪽에서 조건을 입력하고 일정을 생성해보세요!</p>
+        <p>아직 리뷰가 없습니다.</p>
       {% endif %}
     </div>
+    {% endif %}
   </div>
-
-  <!-- ✅ 오른쪽: 카카오 지도 -->
-  <div class="right-panel">
-    <h3>🗺️ 지도</h3>
-    <div id="map" style="width: 100%; height: 500px;"></div>
-  </div>
-
 </div>
+{% endblock %}
 
-<!-- ✅ 스타일 -->
+{% block scripts %}
+<!-- ✅ 사용자 정의 스타일 -->
 <style>
-.place-link {
-  color: #007bff;
-  cursor: pointer;
-  text-decoration: underline;
-}
-.place-link:hover {
-  background-color: #eaf4ff;
-}
-.itinerary-box {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  font-size: 15px;
-}
+  .place-link {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .place-link:hover {
+    background-color: #eaf4ff;
+  }
+  .pdf-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+  .pdf-btn:hover {
+    background-color: #218838;
+  }
 </style>
 
-<!-- ✅ 카카오 지도 -->
+<!-- ✅ 카카오 지도 스크립트 및 마커 렌더링 -->
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_key }}&autoload=false"></script>
 <script>
 kakao.maps.load(function () {
   let currentInfoWindow = null;
-
   const mapContainer = document.getElementById('map');
   const center = new kakao.maps.LatLng({{ center_lat }}, {{ center_lng }});
   const map = new kakao.maps.Map(mapContainer, { center: center, level: 6 });
-
   const markerData = {{ markers | tojson | safe }};
   const markerDict = {};
 
@@ -93,7 +146,6 @@ kakao.maps.load(function () {
       const name = el.dataset.name;
       const data = markerDict[name];
       if (!data) return;
-
       if (currentInfoWindow) currentInfoWindow.close();
       map.setCenter(data.pos);
       data.info.open(map, data.marker);
@@ -101,5 +153,23 @@ kakao.maps.load(function () {
     });
   });
 });
+</script>
+
+<!-- ✅ 공유 링크 복사 JS -->
+<script>
+function copyLink() {
+  fetch("/save_share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ html: document.querySelector(".itinerary-box").innerHTML })
+  })
+  .then(response => response.json())
+  .then(data => {
+    const fullUrl = `${window.location.origin}/share/${data.share_id}`;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      document.getElementById("share-result").innerText = `공유 링크가 복사되었습니다: ${fullUrl}`;
+    });
+  });
+}
 </script>
 {% endblock %}

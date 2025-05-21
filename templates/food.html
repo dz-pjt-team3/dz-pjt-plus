@@ -50,7 +50,7 @@
 <script>
 kakao.maps.load(function () {
   const mapContainer = document.getElementById('map');
-  const center = new kakao.maps.LatLng(37.5665, 126.9780); // 기본 중심 (서울)
+  const center = new kakao.maps.LatLng({{ center_lat }}, {{ center_lng }});
   const map = new kakao.maps.Map(mapContainer, {
     center: center,
     level: 5
@@ -58,7 +58,7 @@ kakao.maps.load(function () {
 
   const markerList = [];
 
-  // 📍 place-list의 각 항목 반복
+  // place-list의 각 항목 반복
   document.querySelectorAll('.place-item').forEach(item => {
     const lat = parseFloat(item.dataset.lat);
     const lng = parseFloat(item.dataset.lng);
@@ -86,7 +86,7 @@ kakao.maps.load(function () {
       info.open(map, marker);
     });
 
-    // 📌 리스트 아이템 클릭 시 지도 이동 + 마커 인포윈도우 열기
+    // 리스트 아이템 클릭 시 지도 이동 + 마커 인포윈도우 열기
     item.addEventListener('click', () => {
       map.setCenter(pos);
       map.setLevel(4); // 확대 레벨 조정

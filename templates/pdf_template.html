@@ -4,29 +4,29 @@
   <meta charset="UTF-8">
   <style>
     body {
-      font-family: 'Malgun Gothic', sans-serif;
-      font-size: 14px;
+      font-family: "Noto Sans KR", sans-serif;
+      margin: 40px;
       line-height: 1.7;
-      padding: 20px;
     }
-    h2 {
-      margin-bottom: 16px;
-    }
-    a {
+    h1 {
       color: #007bff;
-      text-decoration: none;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 8px;
     }
-    a:hover {
-      text-decoration: underline;
+    .day-title {
+      margin-top: 24px;
+      font-weight: bold;
+      font-size: 18px;
     }
-    .itinerary-box {
-      white-space: pre-wrap;
+    .entry {
+      margin-left: 20px;
+      margin-bottom: 12px;
     }
   </style>
 </head>
 <body>
-  <h2>📋 여행 일정</h2>
-  <div class="itinerary-box">
+  <h1>📅 여행 일정 요약</h1>
+  <div class="content">
     {{ result | safe }}
   </div>
 </body>
