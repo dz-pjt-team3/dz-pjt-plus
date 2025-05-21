@@ -111,48 +111,90 @@
   }
 </style>
 
-<!-- ✅ 카카오 지도 스크립트 및 마커 렌더링 -->
+<!-- Kakao Maps JavaScript SDK -->
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey={{ kakao_key }}&autoload=false"></script>
 <script>
+// Kakao Maps API 로드 후 실행
 kakao.maps.load(function () {
   let currentInfoWindow = null;
+
+  // 1) 지도 생성
   const mapContainer = document.getElementById('map');
   const center = new kakao.maps.LatLng({{ center_lat }}, {{ center_lng }});
   const map = new kakao.maps.Map(mapContainer, { center: center, level: 6 });
+
+  // 2) 마커 데이터 및 딕셔너리
   const markerData = {{ markers | tojson | safe }};
   const markerDict = {};
 
+  // 3) 마커 생성 및 클릭 이벤트 등록
   markerData.forEach(m => {
     const pos = new kakao.maps.LatLng(m.lat, m.lng);
     const marker = new kakao.maps.Marker({ map, position: pos });
     const info = new kakao.maps.InfoWindow({
       content: `
-        <div style="padding:6px 10px; font-size:13px;">
+        <div style="display: inline-block; white-space: nowrap; padding:6px 10px; font-size:13px; font-family:'Malgun Gothic';">
           <b>${m.day} ${m.time}</b><br>
-          <b>${m.name}</b><br>
-          ${m.desc}
-        </div>`
+          <b>🏠${m.name}</b><br>
+        </div>
+        `,
+      removable: true
     });
+
+    // 마커 클릭 시 InfoWindow 표시
     kakao.maps.event.addListener(marker, 'click', () => {
       if (currentInfoWindow) currentInfoWindow.close();
       info.open(map, marker);
       currentInfoWindow = info;
     });
+
     markerDict[m.name] = { marker, info, pos };
   });
 
+  // 4) 리스트 클릭 시 해당 마커로 이동 및 InfoWindow 오픈
   document.querySelectorAll('.place-link').forEach(el => {
     el.addEventListener('click', () => {
       const name = el.dataset.name;
       const data = markerDict[name];
       if (!data) return;
+
       if (currentInfoWindow) currentInfoWindow.close();
       map.setCenter(data.pos);
       data.info.open(map, data.marker);
       currentInfoWindow = data.info;
     });
   });
-});
+// 5) 다중 경유지 Polyline 표시
+    const routeData = {{ route_data | tojson | safe }};
+    if (routeData.routes && routeData.routes.length > 0) {
+      const sections = routeData.routes[0].sections;
+      const linePath = [];
+
+      sections.forEach(sec => {
+        sec.roads.forEach(rd => {
+          const verts = rd.vertexes;  // [경도, 위도, 경도, 위도, …] 형태 :contentReference[oaicite:0]{index=0}
+          for (let i = 0; i < verts.length; i += 2) {
+            const lng = verts[i], lat = verts[i+1];
+            linePath.push(new kakao.maps.LatLng(lat, lng));
+          }
+        });
+      });
+
+      // Polyline 생성
+      const polyline = new kakao.maps.Polyline({
+        path: linePath,
+        strokeWeight: 4,
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.8
+      });
+      polyline.setMap(map);
+
+      // 지도 범위 재설정
+      const bounds = new kakao.maps.LatLngBounds();
+      linePath.forEach(latlng => bounds.extend(latlng));
+      map.setBounds(bounds);
+    }
+  });
 </script>
 
 <!-- ✅ 공유 링크 복사 JS -->
